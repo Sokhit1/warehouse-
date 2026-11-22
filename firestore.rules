@@ -1,0 +1,277 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Hardened Global Helpers
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(uid) {
+      return isVerifiedUser() && request.auth.uid == uid;
+    }
+
+    function isNonEmptyString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedInt(val, minVal, maxVal) {
+      return val is int && val >= minVal && val <= maxVal;
+    }
+
+    // -------------------------------------------------------------------------
+    // Entity Validation Blueprints (Anti-Update-Gap)
+    // -------------------------------------------------------------------------
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'hubName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'hubName', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && isNonEmptyString(data.displayName, 1, 80)
+        && isNonEmptyString(data.email, 3, 160)
+        && isNonEmptyString(data.hubName, 2, 80)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDock(data) {
+      return data.keys().hasAll(['ownerId', 'number', 'label', 'zone', 'bayType', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'number', 'label', 'zone', 'bayType', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isBoundedInt(data.number, 1, 50)
+        && isNonEmptyString(data.label, 3, 24)
+        && data.zone in ['North Bay', 'Central Bay', 'South Bay']
+        && data.bayType in ['Standard', 'Refrigerated', 'Express Van']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTruck(data) {
+      return data.keys().hasAll([
+          'ownerId', 'truckId', 'plateNumber', 'vehicleType', 'imageKey',
+          'status', 'inWarehouse', 'dockNumber', 'driverName', 'driverPhone',
+          'originCode', 'destinationCode', 'destinationCity', 'maxCapacityKg',
+          'arrivedAt', 'scheduledDeparture', 'dockLead', 'sealNumber',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'truckId', 'plateNumber', 'vehicleType', 'imageKey',
+          'status', 'inWarehouse', 'dockNumber', 'driverName', 'driverPhone',
+          'originCode', 'destinationCode', 'destinationCity', 'maxCapacityKg',
+          'arrivedAt', 'scheduledDeparture', 'dockLead', 'sealNumber',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isNonEmptyString(data.truckId, 3, 24)
+        && data.truckId.matches('^[A-Z0-9\\-]+$')
+        && isNonEmptyString(data.plateNumber, 2, 24)
+        && data.vehicleType in ['Box Truck', 'Container Freight', 'Sleeper Semi', 'Curtainsider', 'Cargo Van']
+        && data.imageKey in ['box', 'container', 'semi', 'curtainsider', 'van']
+        && data.status in ['Not started', 'Loading', 'Ready', 'Completed']
+        && data.inWarehouse is bool
+        && isBoundedInt(data.dockNumber, 1, 50)
+        && isNonEmptyString(data.driverName, 1, 80)
+        && isNonEmptyString(data.driverPhone, 1, 30)
+        && isNonEmptyString(data.originCode, 2, 6)
+        && data.originCode.matches('^[A-Z0-9]+$')
+        && isNonEmptyString(data.destinationCode, 2, 6)
+        && data.destinationCode.matches('^[A-Z0-9]+$')
+        && isNonEmptyString(data.destinationCity, 2, 80)
+        && isBoundedInt(data.maxCapacityKg, 100, 50000)
+        && isNonEmptyString(data.arrivedAt, 4, 16)
+        && isNonEmptyString(data.scheduledDeparture, 4, 16)
+        && isNonEmptyString(data.dockLead, 1, 60)
+        && data.sealNumber is string
+        && data.sealNumber.size() <= 32
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidShipment(data) {
+      return data.keys().hasAll([
+          'ownerId', 'shipmentId', 'reference', 'customer', 'originCode',
+          'destinationCode', 'destinationCity', 'cargoDescription', 'weightKg',
+          'pallets', 'priority', 'truckId', 'loadedPercent', 'scheduledDeparture',
+          'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'shipmentId', 'reference', 'customer', 'originCode',
+          'destinationCode', 'destinationCity', 'cargoDescription', 'weightKg',
+          'pallets', 'priority', 'truckId', 'loadedPercent', 'scheduledDeparture',
+          'createdAtLabel', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isNonEmptyString(data.shipmentId, 3, 24)
+        && data.shipmentId.matches('^[A-Z0-9\\-]+$')
+        && isNonEmptyString(data.reference, 2, 32)
+        && isNonEmptyString(data.customer, 1, 100)
+        && isNonEmptyString(data.originCode, 2, 6)
+        && data.originCode.matches('^[A-Z0-9]+$')
+        && isNonEmptyString(data.destinationCode, 2, 6)
+        && data.destinationCode.matches('^[A-Z0-9]+$')
+        && isNonEmptyString(data.destinationCity, 2, 80)
+        && isNonEmptyString(data.cargoDescription, 1, 160)
+        && isBoundedInt(data.weightKg, 1, 50000)
+        && isBoundedInt(data.pallets, 1, 100)
+        && data.priority in ['Standard', 'Priority', 'Express']
+        && (
+          data.truckId == null ||
+          (isNonEmptyString(data.truckId, 3, 24) && data.truckId.matches('^[A-Z0-9\\-]+$'))
+        )
+        && isBoundedInt(data.loadedPercent, 0, 100)
+        && isNonEmptyString(data.scheduledDeparture, 4, 16)
+        && isNonEmptyString(data.createdAtLabel, 4, 16)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: /users/{userId} (Private PII strictly owner-only)
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'hubName', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: /docks/{dockDocId}
+    // -------------------------------------------------------------------------
+    match /docks/{dockDocId} {
+      allow get: if isVerifiedUser()
+        && isValidId(dockDocId)
+        && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser()
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(dockDocId)
+        && isValidDock(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(dockDocId)
+        && isValidDock(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['label', 'zone', 'bayType', 'updatedAt']);
+      allow delete: if isVerifiedUser()
+        && isValidId(dockDocId)
+        && existing().ownerId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: /trucks/{truckDocId}
+    // -------------------------------------------------------------------------
+    match /trucks/{truckDocId} {
+      allow get: if isVerifiedUser()
+        && isValidId(truckDocId)
+        && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser()
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(truckDocId)
+        && isValidTruck(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(truckDocId)
+        && isValidTruck(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().truckId == existing().truckId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        // Terminal state lock: departed trucks cannot be mutated
+        && existing().inWarehouse == true
+        && (
+          // Action 1: Update loading status and optional security seal
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'sealNumber', 'updatedAt']) ||
+          // Action 2: Reassign dock bay
+          incoming().diff(existing()).affectedKeys().hasOnly(['dockNumber', 'updatedAt']) ||
+          // Action 3: Dispatch cleared truck from gate
+          (
+            (existing().status == 'Ready' || existing().status == 'Completed')
+            && incoming().inWarehouse == false
+            && incoming().status == 'Completed'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['inWarehouse', 'status', 'updatedAt'])
+          )
+        );
+      allow delete: if isVerifiedUser()
+        && isValidId(truckDocId)
+        && existing().ownerId == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: /shipments/{shipmentDocId}
+    // -------------------------------------------------------------------------
+    match /shipments/{shipmentDocId} {
+      allow get: if isVerifiedUser()
+        && isValidId(shipmentDocId)
+        && existing().ownerId == request.auth.uid;
+      allow list: if isVerifiedUser()
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(shipmentDocId)
+        && isValidShipment(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(shipmentDocId)
+        && isValidShipment(incoming())
+        && existing().ownerId == request.auth.uid
+        && incoming().ownerId == existing().ownerId
+        && incoming().shipmentId == existing().shipmentId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Assign or unassign shipment to/from a truck
+          incoming().diff(existing()).affectedKeys().hasOnly(['truckId', 'loadedPercent', 'updatedAt']) ||
+          // Action 2: Update loading percentage
+          incoming().diff(existing()).affectedKeys().hasOnly(['loadedPercent', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser()
+        && isValidId(shipmentDocId)
+        && existing().ownerId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,376 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated dispatcher profile and hub preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Authentication user UID."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Dispatcher display name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160,
+          "description": "Dispatcher email address (private PII)."
+        },
+        "hubName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Active warehouse distribution hub name."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was last updated."
+        }
+      },
+      "required": ["uid", "displayName", "email", "hubName", "createdAt", "updatedAt"]
+    },
+    "Dock": {
+      "title": "Dock",
+      "description": "Loading bay definition within the warehouse yard.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner dispatcher UID."
+        },
+        "number": {
+          "type": "integer",
+          "description": "Numeric bay index from 1 to 50."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "description": "Display label such as Dock #1."
+        },
+        "zone": {
+          "type": "string",
+          "enum": ["North Bay", "Central Bay", "South Bay"],
+          "description": "Warehouse bay zone."
+        },
+        "bayType": {
+          "type": "string",
+          "enum": ["Standard", "Refrigerated", "Express Van"],
+          "description": "Equipment capability of the dock."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["ownerId", "number", "label", "zone", "bayType", "createdAt", "updatedAt"]
+    },
+    "Truck": {
+      "title": "Truck",
+      "description": "Commercial freight vehicle assigned to a loading dock or dispatched from the warehouse.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner dispatcher UID."
+        },
+        "truckId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9\\-]+$",
+          "description": "Fleet vehicle identifier such as TRK-204."
+        },
+        "plateNumber": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 24,
+          "description": "Vehicle license plate number."
+        },
+        "vehicleType": {
+          "type": "string",
+          "enum": ["Box Truck", "Container Freight", "Sleeper Semi", "Curtainsider", "Cargo Van"],
+          "description": "Commercial truck classification."
+        },
+        "imageKey": {
+          "type": "string",
+          "enum": ["box", "container", "semi", "curtainsider", "van"],
+          "description": "Key referencing side-view truck asset."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Not started", "Loading", "Ready", "Completed"],
+          "description": "Current warehouse loading stage."
+        },
+        "inWarehouse": {
+          "type": "boolean",
+          "description": "True while staged inside the warehouse yard; false once dispatched."
+        },
+        "dockNumber": {
+          "type": "integer",
+          "description": "Assigned loading dock number (1 to 50)."
+        },
+        "driverName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Assigned driver full name."
+        },
+        "driverPhone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30,
+          "description": "Driver contact phone number (private operational PII)."
+        },
+        "originCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]+$",
+          "description": "Origin hub code."
+        },
+        "destinationCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]+$",
+          "description": "Destination hub code."
+        },
+        "destinationCity": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Destination city and state."
+        },
+        "maxCapacityKg": {
+          "type": "integer",
+          "description": "Maximum rated cargo payload in kilograms."
+        },
+        "arrivedAt": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "description": "Yard check-in time string."
+        },
+        "scheduledDeparture": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "description": "Planned departure time string."
+        },
+        "dockLead": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Warehouse dock supervisor name."
+        },
+        "sealNumber": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 32,
+          "description": "Trailer security seal number once ready/sealed, empty string if unsealed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when truck record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when truck record was last modified."
+        }
+      },
+      "required": [
+        "ownerId",
+        "truckId",
+        "plateNumber",
+        "vehicleType",
+        "imageKey",
+        "status",
+        "inWarehouse",
+        "dockNumber",
+        "driverName",
+        "driverPhone",
+        "originCode",
+        "destinationCode",
+        "destinationCity",
+        "maxCapacityKg",
+        "arrivedAt",
+        "scheduledDeparture",
+        "dockLead",
+        "sealNumber",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Outbound freight shipment that is either unassigned or staged on an on-site truck.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner dispatcher UID."
+        },
+        "shipmentId": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 24,
+          "pattern": "^[A-Z0-9\\-]+$",
+          "description": "Shipment tracking identifier such as SHP-4801."
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32,
+          "description": "Purchase order or manifest reference."
+        },
+        "customer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Consignee or customer organization."
+        },
+        "originCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]+$",
+          "description": "Origin hub code."
+        },
+        "destinationCode": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]+$",
+          "description": "Destination hub code."
+        },
+        "destinationCity": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Destination city name."
+        },
+        "cargoDescription": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Summary of palletized cargo contents."
+        },
+        "weightKg": {
+          "type": "integer",
+          "description": "Cargo weight in kilograms (1 to 50000)."
+        },
+        "pallets": {
+          "type": "integer",
+          "description": "Pallet count (1 to 100)."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Standard", "Priority", "Express"],
+          "description": "Dispatch service priority."
+        },
+        "truckId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 24,
+          "description": "Assigned fleet truckId (e.g. TRK-204), or null when unassigned."
+        },
+        "loadedPercent": {
+          "type": "integer",
+          "description": "Percentage of shipment loaded onto truck (0 to 100)."
+        },
+        "scheduledDeparture": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "description": "Target dispatch time."
+        },
+        "createdAtLabel": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "description": "Compact creation time label for display."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of shipment creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "shipmentId",
+        "reference",
+        "customer",
+        "originCode",
+        "destinationCode",
+        "destinationCity",
+        "cargoDescription",
+        "weightKg",
+        "pallets",
+        "priority",
+        "truckId",
+        "loadedPercent",
+        "scheduledDeparture",
+        "createdAtLabel",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private dispatcher account profile indexed by Firebase Auth UID."
+    },
+    "/docks/{dockDocId}": {
+      "schema": { "$ref": "#/entities/Dock" },
+      "description": "Warehouse loading bay records owned by a dispatcher."
+    },
+    "/trucks/{truckDocId}": {
+      "schema": { "$ref": "#/entities/Truck" },
+      "description": "On-site and departed freight truck records owned by a dispatcher."
+    },
+    "/shipments/{shipmentDocId}": {
+      "schema": { "$ref": "#/entities/Shipment" },
+      "description": "Assigned and unassigned outbound shipment records owned by a dispatcher."
+    }
+  }
+}

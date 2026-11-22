@@ -1,0 +1,6 @@
+{
+  "name": "Fieldline — Warehouse Operations",
+  "description": "Dispatcher workspace for tracking on-site trucks, dock loading progress, and outbound shipment readiness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
